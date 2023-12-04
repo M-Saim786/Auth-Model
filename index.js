@@ -18,6 +18,10 @@ db.on("error", () => {
 app.use(bodyParser.json())
 app.use(mainRouter)
 
+app.get('/', (req, res) => {
+    res.status(200).json('Welcome, your app is working well');
+  })
+  
 
 app.listen(Port, () => {
     console.log("Port is listening at ", Port)
