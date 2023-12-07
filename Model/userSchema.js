@@ -13,6 +13,10 @@ const userModel = mongoose.Schema({
         type: String,
         required: true
     },
+    newPsassword: {
+        type: String,
+        // required: true
+    },
     isVerify: {
         type: Boolean,
         default: false

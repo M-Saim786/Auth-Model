@@ -14,7 +14,9 @@ exports.userCreate = async (req, res) => {
         if (!checkEmail) {
             // console.log("email mil gya")
             const hashPassword = await bcrypt.hash(password, 12)
-            const otp = Math.floor(Math.random() * 90000)
+            const min = 10000; // Minimum 5-digit number
+            const max = 99999; // Maximum 5-digit number
+            const otp = Math.floor(Math.random() * (max - min + 1)) + min;
             console.log("otp", otp)
 
             req.body.password = hashPassword
@@ -54,8 +56,8 @@ exports.userCreate = async (req, res) => {
 
 
             return res.status(200).json({
-                message: "User Created",
-                data: user,
+                message: `Otp sent to ${email}`,
+                // data: user,
                 token: token
             })
 
@@ -69,7 +71,7 @@ exports.userCreate = async (req, res) => {
     catch (err) {
         return res.status(500).json({
             message: "Internal server error",
-            error: err
+            error: err.message
         });
 
     }
@@ -88,7 +90,7 @@ exports.verifyOtp = async (req, res) => {
         } else {
             if (otp == undefined) {
                 return res.status(401).json({
-                    message: "otp not provide"
+                    message: "otp not provided"
                 })
             } else if (otp.length != 5) {
                 return res.status(401).json({
@@ -182,63 +184,76 @@ exports.loginUser = async (req, res) => {
 exports.forgetPassword = async (req, res) => {
     const { email } = req.body
     const user = await userSchema.findOne({ email })
-    if (user.email) {
-        console.log("user", user)
-        // if (user)
-        const token = jWt.sign({ user_id: user._id }, secretkey, { expiresIn: 60 * 60 })
-        return res.status(200).json({
-            message: "This forget token expires in 1 hour",
-            // data: user,
-            token: token
-        })
-    } else {
-        return res.status(500).json({
-            message: "Not Found!!"
+    try {
+        if (user.email) {
+            console.log("user", user)
+            // if (user)
+            const token = jWt.sign({ user_id: user._id }, secretkey, { expiresIn: 60 * 60 })
+            return res.status(200).json({
+                message: "This forget token expires in 1 hour",
+                // data: user,
+                token: token
+            })
+        } else {
+            return res.status(500).json({
+                message: "Not Found!!"
+            })
+        }
+    } catch (err) {
+        return res.status(400).json({
+            message: err.message
         })
     }
 }
 
 exports.updatePassword = async (req, res) => {
-    const Id = req.params.id;
-    console.log("Id", Id);
-    const { body, headers } = req
-    const { authorization } = headers
-    const { email, password } = body
-    // console.log("passowrd",password)
-    if (!authorization) {
-        return res.status(404).json({
-            message: "Token Not Found "
-        })
-    }
-    else if (!body.password) {
-        return res.status(404).json({
-            message: "Password Not Found"
-        })
-    }
-    else {
-        const hashPassword = await bcrypt.hash(password, 12)
-        req.body.password = hashPassword
-        const update = { password: req.body.password }
-        console.log("updated", update)
-        await userSchema.findOneAndUpdate({ _id: Id }, update).then((data) => {
-            res.status(200).json({
-                message: "Passowrd Updated",
-                data: data,
-                success: true,
+    try {
+        const Id = req.params.id;
+        // console.log("Id", Id);
+        const { body, headers } = req
+        const { authorization } = headers
+        const { email, newPassword } = body
+        // console.log("passowrd",password)
+        if (!authorization) {
+            return res.status(404).json({
+                message: "Token Not Found "
+            })
+        }
+        else if (!body.newPassword) {
+            return res.status(404).json({
+                message: "Password Not Found"
+            })
+        }
+        else {
+            const hashPassword = await bcrypt.hash(newPassword, 12)
+            req.body.newPassword = hashPassword
+            const update = { password: req.body.newPassword }
+            console.log("updated", update)
+            await userSchema.findOneAndUpdate({ _id: Id }, update).then((data) => {
+                res.status(200).json({
+                    message: "Passowrd Updated",
+                    data: data,
+                    success: true,
+                });
+            }).catch((err) => {
+                res.status(400).json({
+                    data: err,
+                    success: false,
+                });
             });
-        }).catch((err) => {
-            res.status(400).json({
-                data: err,
-                success: false,
-            });
-        });
-        // await user.set({
-        //     password: req.body.password
-        // // })
-        // return res.status(200).json({
-        //     message: "Passowrd Updated",
-        //     data: user,
+            // await user.set({
+            //     password: req.body.password
+            // // })
+            // return res.status(200).json({
+            //     message: "Passowrd Updated",
+            //     data: user,
 
-        // })
+            // })
+        }
+    } catch (err) {
+        console.log(err)
+        return res.status(400).json({
+            message: err.message
+        })
     }
 }
